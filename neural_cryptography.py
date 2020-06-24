@@ -1,11 +1,10 @@
 import numpy as np
-import keras
-from keras.layers import *
-from keras.losses import *
-from keras.callbacks import *
-from keras.models import *
-from keras.metrics import *
-from keras.preprocessing.image import img_to_array, load_img
+from tensorflow.keras.layers import *
+from tensorflow.keras.losses import *
+from tensorflow.keras.callbacks import *
+from tensorflow.keras.models import *
+from tensorflow.keras.metrics import *
+from tensorflow.keras.preprocessing.image import img_to_array, load_img
 
 
 def rand_img(size):
@@ -37,7 +36,7 @@ def data_generator(image_size, sentence_len, sentence_max_word, batch_size=32):
             x_sen[i] = sentence
             y_img[i] = img
             y_sen[i] = sentence_onehot
-        yield [[x_img, x_sen], [y_img, y_sen]]
+        yield [x_img, x_sen], [y_img, y_sen]
 
 
 def get_model(image_shape, sentence_len, max_word):
@@ -78,7 +77,15 @@ def main():
     max_word = 256
     gen = data_generator(image_shape, sentence_len, max_word, 64)
     model, encoder, decoder = get_model(image_shape, sentence_len, max_word)
-    model.load_weights("best_weights.h5")
+    try:
+        model.load_weights("best_weights.h5")
+    except:
+        model.fit(gen, epochs=512, steps_per_epoch=348, callbacks=[
+            ModelCheckpoint("best_weights.h5",monitor="loss",
+                            verbose=1,
+                            save_weights_only=True,
+                            save_best_only=True)]
+        )
     img = np.expand_dims(img_to_array(load_img("img.jpg")) / 255.0, axis=0)
     sen = ascii_encode('Anthony Edward "Tony" Stark is a character portrayed by Robert Downey Jr. in the MCU film franchise', sentence_len)
     y = encoder.predict([img, sen])
